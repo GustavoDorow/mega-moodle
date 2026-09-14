@@ -3,39 +3,6 @@ from mega_moodle.disciplina import Disciplina
 from mega_moodle.tipo_disciplina import TipoDisciplina
 
 
-def ler_texto(mensagem: str) -> str:
-    while not (valor := input(mensagem).strip()):
-        print("Este campo não pode ficar vazio.")
-    return valor
-
-
-def ler_inteiro_positivo(mensagem: str) -> int:
-    while True:
-        entrada = input(mensagem).strip()
-
-        if entrada.isdigit() and int(entrada) > 0:
-            return int(entrada)
-
-        print("Digite um número inteiro positivo.")
-
-
-def ler_tipo_disciplina() -> TipoDisciplina:
-    opcoes = {
-        "1": TipoDisciplina.OBRIGATORIA,
-        "2": TipoDisciplina.OPTATIVA,
-    }
-
-    while True:
-        print("\n1 - Obrigatória")
-        print("2 - Optativa")
-        escolha = input("Tipo da disciplina: ").strip()
-
-        if escolha in opcoes:
-            return opcoes[escolha]
-
-        print("Escolha 1 ou 2.")
-
-
 def exibir_disciplina(disciplina: Disciplina) -> None:
     print(f"Código: {disciplina.codigo}")
     print(f"Nome: {disciplina.nome}")
@@ -45,14 +12,25 @@ def exibir_disciplina(disciplina: Disciplina) -> None:
 
 
 def cadastrar_disciplina(administrador: Administrador) -> Disciplina:
-    print("\nCadastro de disciplina")
-    print("-----------------------")
+    print("\nCadastro de disciplina\n-----------------------")
+
+    codigo = input("Código da disciplina: ").strip()
+    nome = input("Nome da disciplina: ").strip()
+    carga_horaria = int(input("Carga horária: "))
+    fase_sugerida = int(input("Fase sugerida: "))
+
+    print("\n1 - Obrigatória\n2 - Optativa")
+    tipo = {
+        "1": TipoDisciplina.OBRIGATORIA,
+        "2": TipoDisciplina.OPTATIVA,
+    }[input("Tipo da disciplina: ").strip()]
+
     disciplina = administrador.cadastrar_disciplina(
-        codigo=ler_texto("Código da disciplina: "),
-        nome=ler_texto("Nome da disciplina: "),
-        carga_horaria=ler_inteiro_positivo("Carga horária: "),
-        fase_sugerida=ler_inteiro_positivo("Fase sugerida: "),
-        tipo=ler_tipo_disciplina(),
+        codigo=codigo,
+        nome=nome,
+        carga_horaria=carga_horaria,
+        fase_sugerida=fase_sugerida,
+        tipo=tipo,
     )
 
     print("\nDisciplina cadastrada com sucesso!")
@@ -61,8 +39,7 @@ def cadastrar_disciplina(administrador: Administrador) -> Disciplina:
 
 
 def exibir_disciplinas(disciplinas: list[Disciplina]) -> None:
-    print("\nDisciplinas cadastradas")
-    print("------------------------")
+    print("\nDisciplinas cadastradas\n------------------------")
 
     if not disciplinas:
         print("Nenhuma disciplina cadastrada.")
@@ -75,21 +52,22 @@ def exibir_disciplinas(disciplinas: list[Disciplina]) -> None:
 
 
 def main() -> None:
-    print("Mega Moodle")
-    print("-----------\n")
+    print("Mega Moodle\n-----------\n")
 
     administrador = Administrador(
-        id=ler_inteiro_positivo("ID do administrador: "),
-        nome=ler_texto("Nome do administrador: "),
+        id=int(input("ID do administrador: ")),
+        nome=input("Nome do administrador: ").strip(),
     )
     disciplinas: list[Disciplina] = []
 
     while True:
-        print("\n------------------------")
-        print("1 - Cadastrar disciplina")
-        print("2 - Listar disciplinas")
-        print("0 - Sair")
-        print("------------------------")
+        print(
+            "\n------------------------\n"
+            "1 - Cadastrar disciplina\n"
+            "2 - Listar disciplinas\n"
+            "0 - Sair\n"
+            "------------------------"
+        )
         escolha = input("Escolha: ").strip()
 
         if escolha == "1":
