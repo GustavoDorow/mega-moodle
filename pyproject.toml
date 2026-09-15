@@ -1,13 +1,15 @@
 [project]
 name = "mega-moodle"
 version = "0.1.0"
-description = "Add your description here"
+description = "Interface desktop para cadastro de disciplinas e disponibilidade"
 readme = "README.md"
 authors = [
     { name = "Gustavo Sonntag Dorow", email = "gustavosdorow@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pyside6>=6.11.2",
+]
 
 [project.scripts]
 mega-moodle = "mega_moodle:main"
