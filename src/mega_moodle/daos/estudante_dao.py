@@ -19,8 +19,25 @@ class EstudanteDAO:
 
     def buscar_por_id(self, identificacao: int) -> Estudante | None:
         linhas = self.banco.consultar(
-            "SELECT id, nome FROM estudante WHERE id = ?", (identificacao,)
+            "SELECT id, nome, limite_disciplinas FROM estudante WHERE id = ?",
+            (identificacao,),
         )
         if not linhas:
             return None
-        return Estudante(id=linhas[0]["id"], nome=linhas[0]["nome"])
+        limite = linhas[0]["limite_disciplinas"]
+        if limite != 0 and not Estudante.validar_limite_disciplinas(limite):
+            raise ValueError("O limite salvo está fora do intervalo suportado.")
+        return Estudante(
+            id=linhas[0]["id"],
+            nome=linhas[0]["nome"],
+            limite_disciplinas=limite,
+        )
+
+    def atualizar_limite(self, estudante_id: int, limite: int) -> StatusPersistencia:
+        if not Estudante.validar_limite_disciplinas(limite):
+            return StatusPersistencia.ERRO
+        linhas = self.banco.executar_atualizacao(
+            "UPDATE estudante SET limite_disciplinas = ? WHERE id = ?",
+            (limite, estudante_id),
+        )
+        return StatusPersistencia.OK if linhas == 1 else StatusPersistencia.ERRO

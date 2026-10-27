@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class ResultadoOperacao:
     sucesso: bool
     mensagem: str
+    limite: int | None = None

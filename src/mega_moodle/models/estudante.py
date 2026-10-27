@@ -5,11 +5,16 @@ from mega_moodle.models.dia_semana import DiaSemana
 from mega_moodle.models.disponibilidade import Disponibilidade
 
 
+# Limite de representação adotado pela aplicação: inteiro de 32 bits com sinal.
+MAX_LIMITE_DISCIPLINAS = 2_147_483_647
+
+
 @dataclass
 class Estudante:
     id: int
     nome: str
     disponibilidades: list[Disponibilidade] = field(default_factory=list)
+    limite_disciplinas: int = 0
 
     def definir_disponibilidade(
         self,
@@ -20,3 +25,17 @@ class Estudante:
         disponibilidade = Disponibilidade(dia_semana, hora_inicio, hora_fim)
         self.disponibilidades.append(disponibilidade)
         return disponibilidade
+
+    @staticmethod
+    def validar_limite_disciplinas(limite: int) -> bool:
+        return (
+            isinstance(limite, int)
+            and not isinstance(limite, bool)
+            and 1 <= limite <= MAX_LIMITE_DISCIPLINAS
+        )
+
+    def definir_limite_disciplinas(self, limite: int) -> bool:
+        if not self.validar_limite_disciplinas(limite):
+            return False
+        self.limite_disciplinas = limite
+        return True

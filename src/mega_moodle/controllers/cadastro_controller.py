@@ -43,9 +43,14 @@ class CadastroController:
                 estudante = Estudante(identificacao, nome)
                 if self.estudante_dao.salvar(estudante) is StatusPersistencia.ERRO:
                     return ResultadoOperacao(False, "Não foi possível salvar o estudante.")
+                estudante = self.estudante_dao.buscar_por_id(identificacao)
+                if estudante is None:
+                    return ResultadoOperacao(
+                        False, "Não foi possível carregar os dados do perfil."
+                    )
                 estudante.disponibilidades = self.disponibilidade_dao.listar(identificacao)
                 self.estudante_controller = EstudanteController(
-                    estudante, self.disponibilidade_dao
+                    estudante, self.disponibilidade_dao, self.estudante_dao
                 )
         except (sqlite3.Error, ValueError):
             return ResultadoOperacao(False, "Não foi possível carregar os dados do perfil.")

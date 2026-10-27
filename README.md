@@ -1,7 +1,8 @@
 # Mega Moodle
 
-Aplicação desktop em Python e PySide6. Por enquanto, mantém os dois casos de uso
-que já existiam: cadastrar disciplinas e informar disponibilidade semanal.
+Aplicação desktop em Python e PySide6. A interface gráfica permite cadastrar
+disciplinas, informar disponibilidade semanal e definir o limite de disciplinas.
+O terminal mantém os dois primeiros casos de uso.
 
 ## Executar
 
@@ -36,8 +37,8 @@ src/mega_moodle/
 ├── controllers/
 │   ├── cadastro_controller.py      # Abre o perfil e carrega os dados
 │   ├── administrador_controller.py # Coordena o cadastro de disciplina
-│   ├── estudante_controller.py     # Coordena o registro de disponibilidade
-│   └── resultado_operacao.py       # Sucesso e mensagem para a tela
+│   ├── estudante_controller.py     # Coordena disponibilidade e limite
+│   └── resultado_operacao.py       # Sucesso, mensagem e limite para a tela
 ├── models/                         # Entidades, enums e regras de domínio
 │   ├── administrador.py
 │   ├── estudante.py
@@ -72,16 +73,22 @@ Os DAOs fazem parte da persistência da camada Model no MVC. A pasta `models`
 contém especificamente as entidades e suas regras, como nas raias dos diagramas.
 Não há ORM, classes base ou uma camada de serviços.
 
-## Próximos casos de uso
+## Entrega 3
 
-Esta etapa prepara a arquitetura. Os casos novos ainda não foram implementados.
+**Gustavo — definir limite de disciplinas:** implementado na interface gráfica.
+O Model valida sem alterar o estudante e retorna um booleano. O controller chama
+o DAO e, somente após o commit, atualiza a entidade e devolve o limite no
+`ResultadoOperacao`. A View usa esse resultado para atualizar o valor mostrado.
 
-- **Gustavo — definir limite de disciplinas:** adicionar estado e validação em
-  `models/estudante.py`, a coluna e o UPDATE na persistência, o método no
-  `EstudanteController` e os campos na View.
-- **David — registrar disciplinas concluídas:** adicionar a coleção e a regra
-  de duplicidade em `models/estudante.py`, criar `HistoricoDAO` e a tabela com
-  chave composta, o método no `EstudanteController` e a seleção do catálogo na View.
+O limite aceito é um inteiro de **1 a 2.147.483.647**, intervalo de representação
+compartilhado pelo Model, DAO e campo numérico da tela. Booleanos são recusados.
+O valor inicial `0` significa “Não definido” e não pode ser escolhido como novo
+limite. Bancos antigos recebem a coluna automaticamente. Se um banco já contiver
+um limite incompatível, a abertura do perfil é recusada sem apagar esse valor.
+
+**David — registrar disciplinas concluídas:** pendente. Adicionar a coleção e a
+regra de duplicidade em `models/estudante.py`, criar `HistoricoDAO` e a tabela com
+chave composta, o método no `EstudanteController` e a seleção do catálogo na View.
 
 As novas dependências devem ser montadas em `main.py`, mantendo o fluxo do
 `v5.eap`. Os nomes dos métodos em Python usam `snake_case`.
@@ -95,5 +102,5 @@ uv run python -m unittest discover -s tests -v
 ```
 
 Cobrem persistência após reabrir, duplicidade, validação, isolamento entre
-estudantes, falha de gravação e os dois fluxos da interface gráfica sem abrir
-janelas na área de trabalho.
+estudantes, falha de gravação, migração e limites extremos. Os testes da interface
+gráfica executam sem abrir janelas na área de trabalho.

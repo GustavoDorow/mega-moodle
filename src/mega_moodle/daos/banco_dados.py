@@ -20,7 +20,9 @@ class BancoDados:
                 conexao.executescript("""
                     CREATE TABLE IF NOT EXISTS estudante (
                         id INTEGER PRIMARY KEY,
-                        nome TEXT NOT NULL
+                        nome TEXT NOT NULL,
+                        limite_disciplinas INTEGER NOT NULL DEFAULT 0
+                            CHECK (limite_disciplinas >= 0)
                     );
 
                     CREATE TABLE IF NOT EXISTS disciplina (
@@ -39,6 +41,13 @@ class BancoDados:
                         hora_fim TEXT NOT NULL
                     );
                 """)
+                colunas = conexao.execute("PRAGMA table_info(estudante)").fetchall()
+                if not any(coluna["name"] == "limite_disciplinas" for coluna in colunas):
+                    conexao.execute("""
+                        ALTER TABLE estudante
+                        ADD COLUMN limite_disciplinas INTEGER NOT NULL DEFAULT 0
+                            CHECK (limite_disciplinas >= 0)
+                    """)
 
     def executar_atualizacao(self, sql: str, parametros: tuple = ()) -> int:
         """Retorna as linhas afetadas após o commit, ou -1 em caso de falha."""

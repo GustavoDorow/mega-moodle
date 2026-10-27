@@ -1,5 +1,6 @@
 import sqlite3
 import unittest
+from contextlib import closing
 from datetime import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -91,7 +92,7 @@ class FluxosTest(unittest.TestCase):
 
     def test_falha_no_commit_faz_rollback(self):
         # A FK adiada permite o INSERT e falha somente ao confirmar a transação.
-        with sqlite3.connect(self.caminho) as conexao:
+        with closing(sqlite3.connect(self.caminho)) as conexao, conexao:
             conexao.execute("""
                 CREATE TABLE teste_commit (
                     estudante_id INTEGER REFERENCES estudante(id)

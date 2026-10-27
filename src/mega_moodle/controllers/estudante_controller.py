@@ -2,18 +2,39 @@ from datetime import time
 
 from mega_moodle.controllers.resultado_operacao import ResultadoOperacao
 from mega_moodle.daos.disponibilidade_dao import DisponibilidadeDAO
+from mega_moodle.daos.estudante_dao import EstudanteDAO
 from mega_moodle.daos.status_persistencia import StatusPersistencia
 from mega_moodle.models.dia_semana import DiaSemana
 from mega_moodle.models.disponibilidade import Disponibilidade
-from mega_moodle.models.estudante import Estudante
+from mega_moodle.models.estudante import MAX_LIMITE_DISCIPLINAS, Estudante
 
 
 class EstudanteController:
     def __init__(
-        self, estudante: Estudante, disponibilidade_dao: DisponibilidadeDAO
+        self,
+        estudante: Estudante,
+        disponibilidade_dao: DisponibilidadeDAO,
+        estudante_dao: EstudanteDAO,
     ) -> None:
         self.estudante = estudante
         self.disponibilidade_dao = disponibilidade_dao
+        self.estudante_dao = estudante_dao
+
+    def definir_limite_disciplinas(self, limite: int) -> ResultadoOperacao:
+        if not self.estudante.validar_limite_disciplinas(limite):
+            return ResultadoOperacao(
+                False,
+                f"Informe um limite de disciplinas inteiro entre 1 e {MAX_LIMITE_DISCIPLINAS}.",
+            )
+
+        status = self.estudante_dao.atualizar_limite(self.estudante.id, limite)
+        if status is not StatusPersistencia.OK:
+            return ResultadoOperacao(False, "Não foi possível salvar o limite de disciplinas.")
+
+        self.estudante.definir_limite_disciplinas(limite)
+        return ResultadoOperacao(
+            True, "Limite de disciplinas salvo com sucesso.", limite=limite
+        )
 
     def registrar_disponibilidade(
         self, dia_semana: DiaSemana, hora_inicio: time, hora_fim: time

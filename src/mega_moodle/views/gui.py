@@ -17,6 +17,7 @@ from mega_moodle.controllers.administrador_controller import AdministradorContro
 from mega_moodle.controllers.cadastro_controller import CadastroController
 from mega_moodle.controllers.estudante_controller import EstudanteController
 from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.estudante import MAX_LIMITE_DISCIPLINAS
 from mega_moodle.models.tipo_disciplina import TipoDisciplina
 
 
@@ -118,6 +119,18 @@ class MegaMoodleWindow(QMainWindow):
         tela, form = self._formulario()
         form.addRow(QLabel(f"Estudante: {self.estudante_controller.estudante.nome}"))
 
+        self.limite_atual = QLabel()
+        limite = self.estudante_controller.estudante.limite_disciplinas
+        self._atualizar_limite(limite)
+        self.limite_disciplinas = QSpinBox(
+            minimum=1,
+            maximum=MAX_LIMITE_DISCIPLINAS,
+            value=limite or 1,
+        )
+        form.addRow("Limite atual", self.limite_atual)
+        form.addRow("Novo limite", self.limite_disciplinas)
+        form.addRow(self._botao("Salvar limite", self._salvar_limite))
+
         self.dia = QComboBox()
         for dia in DiaSemana:
             self.dia.addItem(dia.value, dia)
@@ -133,6 +146,20 @@ class MegaMoodleWindow(QMainWindow):
         form.addRow(self.lista)
         self._atualizar_disponibilidades()
         return tela
+
+    def _salvar_limite(self) -> None:
+        resultado = self.estudante_controller.definir_limite_disciplinas(
+            self.limite_disciplinas.value()
+        )
+        if not resultado.sucesso:
+            QMessageBox.warning(self, "Limite de disciplinas", resultado.mensagem)
+            return
+
+        self._atualizar_limite(resultado.limite)
+        QMessageBox.information(self, "Limite de disciplinas", resultado.mensagem)
+
+    def _atualizar_limite(self, limite: int | None) -> None:
+        self.limite_atual.setText(str(limite) if limite else "Não definido")
 
     def _registrar_disponibilidade(self) -> None:
         resultado = self.estudante_controller.registrar_disponibilidade(
