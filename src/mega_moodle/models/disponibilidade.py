@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import time
 
-from mega_moodle.dia_semana import DiaSemana
+from mega_moodle.models.dia_semana import DiaSemana
 
 
 @dataclass

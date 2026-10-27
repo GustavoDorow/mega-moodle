@@ -1,4 +1,4 @@
-from mega_moodle.gui import main
+from mega_moodle.main import main
 
 
 __all__ = ["main"]

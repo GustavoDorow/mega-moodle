@@ -1,8 +1,5 @@
-import sys
-
 from PySide6.QtCore import QTime
 from PySide6.QtWidgets import (
-    QApplication,
     QComboBox,
     QFormLayout,
     QLabel,
@@ -16,16 +13,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from mega_moodle.administrador import Administrador
-from mega_moodle.dia_semana import DiaSemana
-from mega_moodle.estudante import Estudante
-from mega_moodle.tipo_disciplina import TipoDisciplina
+from mega_moodle.controllers.administrador_controller import AdministradorController
+from mega_moodle.controllers.cadastro_controller import CadastroController
+from mega_moodle.controllers.estudante_controller import EstudanteController
+from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.tipo_disciplina import TipoDisciplina
 
 
 class MegaMoodleWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, controller: CadastroController) -> None:
         super().__init__()
-        self.usuario: Administrador | Estudante | None = None
+        self.controller = controller
+        self.administrador_controller: AdministradorController | None = None
+        self.estudante_controller: EstudanteController | None = None
         self.setWindowTitle("Mega Moodle")
         self.resize(650, 400)
         self.setCentralWidget(self._cadastro())
@@ -42,8 +42,7 @@ class MegaMoodleWindow(QMainWindow):
         self.identificacao = QSpinBox(maximum=99999999)
         self.nome_usuario = QLineEdit()
         self.perfil = QComboBox()
-        self.perfil.addItem("Administrador", Administrador)
-        self.perfil.addItem("Estudante", Estudante)
+        self.perfil.addItems(["Administrador", "Estudante"])
 
         form.addRow("Identificação", self.identificacao)
         form.addRow("Nome", self.nome_usuario)
@@ -52,19 +51,23 @@ class MegaMoodleWindow(QMainWindow):
         return tela
 
     def _cadastrar_usuario(self) -> None:
-        nome = self.nome_usuario.text().strip()
-        if not nome:
-            QMessageBox.warning(self, "Cadastro", "Informe o nome.")
+        perfil = self.perfil.currentText()
+        resultado = self.controller.cadastrar_usuario(
+            self.identificacao.value(), self.nome_usuario.text(), perfil
+        )
+        if not resultado.sucesso:
+            QMessageBox.warning(self, "Cadastro", resultado.mensagem)
             return
 
-        classe = self.perfil.currentData()
-        self.usuario = classe(self.identificacao.value(), nome)
-        tela = self._admin() if classe is Administrador else self._estudante()
+        self.administrador_controller = self.controller.administrador_controller
+        self.estudante_controller = self.controller.estudante_controller
+        tela = self._admin() if perfil == "Administrador" else self._estudante()
         self.setCentralWidget(tela)
 
     def _admin(self) -> QWidget:
         tela, form = self._formulario()
-        form.addRow(QLabel(f"Administrador: {self.usuario.nome}"))
+        nome = self.administrador_controller.administrador.nome
+        form.addRow(QLabel(f"Administrador: {nome}"))
 
         self.codigo = QLineEdit()
         self.nome_disciplina = QLineEdit()
@@ -83,33 +86,37 @@ class MegaMoodleWindow(QMainWindow):
 
         self.lista = QListWidget()
         form.addRow(self.lista)
+        self._atualizar_disciplinas()
         return tela
 
     def _cadastrar_disciplina(self) -> None:
-        codigo = self.codigo.text().strip().upper()
-        nome = self.nome_disciplina.text().strip()
-        if not codigo or not nome:
-            QMessageBox.warning(self, "Disciplina", "Informe o código e o nome.")
-            return
-
-        disciplina = self.usuario.cadastrar_disciplina(
-            codigo,
-            nome,
+        resultado = self.administrador_controller.cadastrar_disciplina(
+            self.codigo.text(),
+            self.nome_disciplina.text(),
             self.carga.value(),
             self.fase.value(),
             self.tipo.currentData(),
         )
-        self.lista.addItem(
-            f"{disciplina.codigo} | {disciplina.nome} | "
-            f"{disciplina.carga_horaria} h | {disciplina.fase_sugerida}ª fase | "
-            f"{disciplina.tipo.value}"
-        )
+        if not resultado.sucesso:
+            QMessageBox.warning(self, "Disciplina", resultado.mensagem)
+            return
+
+        self._atualizar_disciplinas()
         self.codigo.clear()
         self.nome_disciplina.clear()
 
+    def _atualizar_disciplinas(self) -> None:
+        self.lista.clear()
+        for disciplina in self.administrador_controller.disciplinas:
+            self.lista.addItem(
+                f"{disciplina.codigo} | {disciplina.nome} | "
+                f"{disciplina.carga_horaria} h | {disciplina.fase_sugerida}ª fase | "
+                f"{disciplina.tipo.value}"
+            )
+
     def _estudante(self) -> QWidget:
         tela, form = self._formulario()
-        form.addRow(QLabel(f"Estudante: {self.usuario.nome}"))
+        form.addRow(QLabel(f"Estudante: {self.estudante_controller.estudante.nome}"))
 
         self.dia = QComboBox()
         for dia in DiaSemana:
@@ -124,34 +131,32 @@ class MegaMoodleWindow(QMainWindow):
 
         self.lista = QListWidget()
         form.addRow(self.lista)
+        self._atualizar_disponibilidades()
         return tela
 
     def _registrar_disponibilidade(self) -> None:
-        try:
-            disponibilidade = self.usuario.definir_disponibilidade(
-                self.dia.currentData(),
-                self.inicio.time().toPython(),
-                self.fim.time().toPython(),
-            )
-        except ValueError as erro:
-            QMessageBox.warning(self, "Disponibilidade", str(erro))
+        resultado = self.estudante_controller.registrar_disponibilidade(
+            self.dia.currentData(),
+            self.inicio.time().toPython(),
+            self.fim.time().toPython(),
+        )
+        if not resultado.sucesso:
+            QMessageBox.warning(self, "Disponibilidade", resultado.mensagem)
             return
 
-        self.lista.addItem(
-            f"{disponibilidade.dia_semana.value}: "
-            f"{disponibilidade.hora_inicio:%H:%M} às "
-            f"{disponibilidade.hora_fim:%H:%M}"
-        )
+        self._atualizar_disponibilidades()
+
+    def _atualizar_disponibilidades(self) -> None:
+        self.lista.clear()
+        for disponibilidade in self.estudante_controller.estudante.disponibilidades:
+            self.lista.addItem(
+                f"{disponibilidade.dia_semana.value}: "
+                f"{disponibilidade.hora_inicio:%H:%M} às "
+                f"{disponibilidade.hora_fim:%H:%M}"
+            )
 
     @staticmethod
     def _botao(texto: str, acao) -> QPushButton:
         botao = QPushButton(texto)
         botao.clicked.connect(acao)
         return botao
-
-
-def main() -> None:
-    app = QApplication(sys.argv)
-    janela = MegaMoodleWindow()
-    janela.show()
-    raise SystemExit(app.exec())

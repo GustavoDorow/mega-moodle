@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import time
 
-from mega_moodle.dia_semana import DiaSemana
-from mega_moodle.disponibilidade import Disponibilidade
+from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.disponibilidade import Disponibilidade
 
 
 @dataclass

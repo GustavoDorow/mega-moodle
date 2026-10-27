@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from mega_moodle.disciplina import Disciplina
-from mega_moodle.tipo_disciplina import TipoDisciplina
+from mega_moodle.models.disciplina import Disciplina
+from mega_moodle.models.tipo_disciplina import TipoDisciplina
 
 
 @dataclass

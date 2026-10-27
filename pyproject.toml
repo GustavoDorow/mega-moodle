@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 mega-moodle = "mega_moodle:main"
+mega-moodle-cli = "mega_moodle.main:main_cli"
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]

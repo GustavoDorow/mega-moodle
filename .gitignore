@@ -8,3 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Banco local de desenvolvimento
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+.pi

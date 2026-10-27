@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from mega_moodle.administrador import Administrador
-from mega_moodle.dia_semana import DiaSemana
-from mega_moodle.disciplina import Disciplina
-from mega_moodle.disponibilidade import Disponibilidade
-from mega_moodle.estudante import Estudante
-from mega_moodle.tipo_disciplina import TipoDisciplina
+from mega_moodle.controllers.administrador_controller import AdministradorController
+from mega_moodle.controllers.cadastro_controller import CadastroController
+from mega_moodle.controllers.estudante_controller import EstudanteController
+from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.disciplina import Disciplina
+from mega_moodle.models.disponibilidade import Disponibilidade
+from mega_moodle.models.tipo_disciplina import TipoDisciplina
 
 
 def exibir_disciplina(disciplina: Disciplina) -> None:
@@ -16,7 +17,7 @@ def exibir_disciplina(disciplina: Disciplina) -> None:
     print(f"Tipo: {disciplina.tipo.value}")
 
 
-def cadastrar_disciplina(administrador: Administrador) -> Disciplina:
+def cadastrar_disciplina(controller: AdministradorController) -> None:
     print("\nCadastro de disciplina\n-----------------------")
 
     codigo = input("Código da disciplina: ").strip()
@@ -30,7 +31,7 @@ def cadastrar_disciplina(administrador: Administrador) -> Disciplina:
         "2": TipoDisciplina.OPTATIVA,
     }[input("Tipo da disciplina: ").strip()]
 
-    disciplina = administrador.cadastrar_disciplina(
+    resultado = controller.cadastrar_disciplina(
         codigo=codigo,
         nome=nome,
         carga_horaria=carga_horaria,
@@ -38,9 +39,7 @@ def cadastrar_disciplina(administrador: Administrador) -> Disciplina:
         tipo=tipo,
     )
 
-    print("\nDisciplina cadastrada com sucesso!")
-    exibir_disciplina(disciplina)
-    return disciplina
+    print(resultado.mensagem)
 
 
 def exibir_disciplinas(disciplinas: list[Disciplina]) -> None:
@@ -66,51 +65,65 @@ def exibir_disponibilidade(disponibilidade: Disponibilidade) -> None:
     print(f"Fim: {disponibilidade.hora_fim:%H:%M}")
 
 
-def informar_disponibilidade(estudante: Estudante) -> None:
+def informar_disponibilidade(controller: EstudanteController) -> None:
     print("\nDisponibilidade semanal\n------------------------")
     dias = list(DiaSemana)
 
     for numero, dia in enumerate(dias, start=1):
         print(f"{numero} - {dia.value}")
 
-    dia_semana = dias[int(input("Dia da semana: ").strip()) - 1]
+    numero_dia = int(input("Dia da semana: ").strip())
+    if not 1 <= numero_dia <= len(dias):
+        print("Selecione um dos dias da lista.")
+        return
+    dia_semana = dias[numero_dia - 1]
     hora_inicio = ler_horario("Horário inicial (HH:MM): ")
     hora_fim = ler_horario("Horário final (HH:MM): ")
 
-    disponibilidade = estudante.definir_disponibilidade(
+    resultado = controller.registrar_disponibilidade(
         dia_semana,
         hora_inicio,
         hora_fim,
     )
-    print("\nDisponibilidade registrada com sucesso!")
-    exibir_disponibilidade(disponibilidade)
+    print(resultado.mensagem)
 
 
-def exibir_disponibilidades(estudante: Estudante) -> None:
+def exibir_disponibilidades(disponibilidades: list[Disponibilidade]) -> None:
     print("\nDisponibilidades registradas\n-----------------------------")
 
-    if not estudante.disponibilidades:
+    if not disponibilidades:
         print("Nenhuma disponibilidade registrada.")
         return
 
-    for numero, disponibilidade in enumerate(estudante.disponibilidades, start=1):
+    for numero, disponibilidade in enumerate(disponibilidades, start=1):
         print(f"\nDisponibilidade {numero}")
         print("--------------------")
         exibir_disponibilidade(disponibilidade)
 
 
-def main() -> None:
+def executar(controller: CadastroController) -> None:
     print("Mega Moodle\n-----------\n")
 
-    administrador = Administrador(
-        id=int(input("ID do administrador: ")),
+    resultado = controller.cadastrar_usuario(
+        identificacao=int(input("ID do administrador: ")),
         nome=input("Nome do administrador: ").strip(),
+        perfil="Administrador",
     )
-    estudante = Estudante(
-        id=int(input("ID do estudante: ")),
+    if not resultado.sucesso:
+        print(resultado.mensagem)
+        return
+
+    resultado = controller.cadastrar_usuario(
+        identificacao=int(input("ID do estudante: ")),
         nome=input("Nome do estudante: ").strip(),
+        perfil="Estudante",
     )
-    disciplinas: list[Disciplina] = []
+    if not resultado.sucesso:
+        print(resultado.mensagem)
+        return
+
+    administrador = controller.administrador_controller
+    estudante = controller.estudante_controller
 
     while True:
         print(
@@ -125,13 +138,19 @@ def main() -> None:
         escolha = input("Escolha: ").strip()
 
         if escolha == "1":
-            disciplinas.append(cadastrar_disciplina(administrador))
+            try:
+                cadastrar_disciplina(administrador)
+            except (ValueError, KeyError):
+                print("Informe números e um tipo de disciplina válido.")
         elif escolha == "2":
-            exibir_disciplinas(disciplinas)
+            exibir_disciplinas(administrador.disciplinas)
         elif escolha == "3":
-            informar_disponibilidade(estudante)
+            try:
+                informar_disponibilidade(estudante)
+            except (ValueError, IndexError):
+                print("Informe um dia válido e horários no formato HH:MM.")
         elif escolha == "4":
-            exibir_disponibilidades(estudante)
+            exibir_disponibilidades(estudante.estudante.disponibilidades)
         elif escolha == "0":
             print("Programa encerrado.")
             return
