@@ -145,7 +145,46 @@ class MegaMoodleWindow(QMainWindow):
         self.lista = QListWidget()
         form.addRow(self.lista)
         self._atualizar_disponibilidades()
+
+        self.disciplina_concluida = QComboBox()
+        for disciplina in self.estudante_controller.catalogo_disciplinas:
+            self.disciplina_concluida.addItem(
+                f"{disciplina.codigo} - {disciplina.nome}", disciplina
+            )
+        self.botao_registrar_concluida = self._botao(
+            "Registrar disciplina concluída", self._registrar_disciplina_concluida
+        )
+        tem_disciplinas = bool(self.estudante_controller.catalogo_disciplinas)
+        self.disciplina_concluida.setEnabled(tem_disciplinas)
+        self.botao_registrar_concluida.setEnabled(tem_disciplinas)
+
+        form.addRow("Disciplina", self.disciplina_concluida)
+        form.addRow(self.botao_registrar_concluida)
+
+        self.lista_concluidas = QListWidget()
+        form.addRow("Histórico", self.lista_concluidas)
+        self._atualizar_historico(self.estudante_controller.estudante.disciplinas_concluidas)
+
         return tela
+
+    def _registrar_disciplina_concluida(self) -> None:
+        disciplina = self.disciplina_concluida.currentData()
+        if disciplina is None:
+            return
+
+        resultado = self.estudante_controller.registrar_disciplina_concluida(disciplina)
+        if not resultado.sucesso:
+            QMessageBox.warning(self, "Disciplina concluída", resultado.mensagem)
+            return
+
+        if resultado.disciplinas is not None:
+            self._atualizar_historico(resultado.disciplinas)
+        QMessageBox.information(self, "Disciplina concluída", resultado.mensagem)
+
+    def _atualizar_historico(self, disciplinas: list) -> None:
+        self.lista_concluidas.clear()
+        for disciplina in disciplinas:
+            self.lista_concluidas.addItem(f"{disciplina.codigo} - {disciplina.nome}")
 
     def _salvar_limite(self) -> None:
         resultado = self.estudante_controller.definir_limite_disciplinas(

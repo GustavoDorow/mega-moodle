@@ -7,6 +7,7 @@ from mega_moodle.daos.banco_dados import BancoDados
 from mega_moodle.daos.disciplina_dao import DisciplinaDAO
 from mega_moodle.daos.disponibilidade_dao import DisponibilidadeDAO
 from mega_moodle.daos.estudante_dao import EstudanteDAO
+from mega_moodle.daos.historico_dao import HistoricoDAO
 
 
 def criar_controller(caminho_banco: str | Path = "megamoodle.db") -> CadastroController:
@@ -14,7 +15,10 @@ def criar_controller(caminho_banco: str | Path = "megamoodle.db") -> CadastroCon
     banco = BancoDados(caminho_banco)
     banco.inicializar()
     return CadastroController(
-        DisciplinaDAO(banco), EstudanteDAO(banco), DisponibilidadeDAO(banco)
+        DisciplinaDAO(banco),
+        EstudanteDAO(banco),
+        DisponibilidadeDAO(banco),
+        HistoricoDAO(banco),
     )
 
 

@@ -40,6 +40,12 @@ class BancoDados:
                         hora_inicio TEXT NOT NULL,
                         hora_fim TEXT NOT NULL
                     );
+
+                    CREATE TABLE IF NOT EXISTS disciplina_concluida (
+                        estudante_id INTEGER NOT NULL REFERENCES estudante(id),
+                        disciplina_codigo TEXT NOT NULL REFERENCES disciplina(codigo),
+                        PRIMARY KEY (estudante_id, disciplina_codigo)
+                    );
                 """)
                 colunas = conexao.execute("PRAGMA table_info(estudante)").fetchall()
                 if not any(coluna["name"] == "limite_disciplinas" for coluna in colunas):

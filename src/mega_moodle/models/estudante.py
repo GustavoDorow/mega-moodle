@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import time
 
 from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.disciplina import Disciplina
 from mega_moodle.models.disponibilidade import Disponibilidade
 
 
@@ -15,6 +16,13 @@ class Estudante:
     nome: str
     disponibilidades: list[Disponibilidade] = field(default_factory=list)
     limite_disciplinas: int = 0
+    disciplinas_concluidas: list[Disciplina] = field(default_factory=list)
+
+    def registrar_disciplina_concluida(self, disciplina: Disciplina) -> bool:
+        if any(d.codigo == disciplina.codigo for d in self.disciplinas_concluidas):
+            return False
+        self.disciplinas_concluidas.append(disciplina)
+        return True
 
     def definir_disponibilidade(
         self,

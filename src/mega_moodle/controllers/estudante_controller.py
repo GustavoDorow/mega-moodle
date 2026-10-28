@@ -3,8 +3,10 @@ from datetime import time
 from mega_moodle.controllers.resultado_operacao import ResultadoOperacao
 from mega_moodle.daos.disponibilidade_dao import DisponibilidadeDAO
 from mega_moodle.daos.estudante_dao import EstudanteDAO
+from mega_moodle.daos.historico_dao import HistoricoDAO
 from mega_moodle.daos.status_persistencia import StatusPersistencia
 from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.disciplina import Disciplina
 from mega_moodle.models.disponibilidade import Disponibilidade
 from mega_moodle.models.estudante import MAX_LIMITE_DISCIPLINAS, Estudante
 
@@ -15,10 +17,20 @@ class EstudanteController:
         estudante: Estudante,
         disponibilidade_dao: DisponibilidadeDAO,
         estudante_dao: EstudanteDAO,
+        historico_dao: HistoricoDAO | None = None,
+        catalogo_disciplinas: list[Disciplina] | None = None,
     ) -> None:
         self.estudante = estudante
         self.disponibilidade_dao = disponibilidade_dao
         self.estudante_dao = estudante_dao
+        self.historico_dao = historico_dao
+        self.catalogo_disciplinas: list[Disciplina] = (
+            catalogo_disciplinas if catalogo_disciplinas is not None else []
+        )
+
+    @property
+    def disciplinas(self) -> list[Disciplina]:
+        return self.catalogo_disciplinas
 
     def definir_limite_disciplinas(self, limite: int) -> ResultadoOperacao:
         if not self.estudante.validar_limite_disciplinas(limite):
@@ -51,3 +63,23 @@ class EstudanteController:
         # Só altera o estudante depois de confirmar a gravação no banco.
         self.estudante.definir_disponibilidade(dia_semana, hora_inicio, hora_fim)
         return ResultadoOperacao(True, "Disponibilidade registrada com sucesso.")
+
+    def registrar_disciplina_concluida(
+        self, disciplina: Disciplina
+    ) -> ResultadoOperacao:
+        if self.historico_dao is None:
+            return ResultadoOperacao(False, "DAO de histórico não configurado.")
+
+        status = self.historico_dao.registrar(self.estudante.id, disciplina.codigo)
+        if status is StatusPersistencia.DUPLICADO:
+            return ResultadoOperacao(False, "Disciplina já registrada como concluída.")
+        if status is StatusPersistencia.ERRO:
+            return ResultadoOperacao(False, "Não foi possível salvar a disciplina concluída.")
+
+        # Só altera o estudante depois de confirmar a gravação no banco.
+        self.estudante.registrar_disciplina_concluida(disciplina)
+        return ResultadoOperacao(
+            True,
+            "Disciplina concluída registrada com sucesso.",
+            disciplinas=list(self.estudante.disciplinas_concluidas),
+        )
