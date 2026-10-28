@@ -48,3 +48,8 @@ def main_cli() -> None:
         print("Não foi possível abrir o banco de dados.")
         raise SystemExit(1)
     executar(controller)
+
+
+if __name__ == "__main__":
+    main()
+

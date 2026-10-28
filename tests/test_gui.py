@@ -145,3 +145,16 @@ class TelasTest(unittest.TestCase):
         self.abrir_perfil(reaberta, "Estudante")
         self.assertEqual(reaberta.lista.count(), 1)
         self.assertIn("08:00 às 12:00", reaberta.lista.item(0).text())
+
+    def test_sair_volta_para_tela_de_cadastro(self):
+        self.abrir_perfil(self.janela, "Administrador")
+        self.assertIsNotNone(self.janela.administrador_controller)
+        self.janela._voltar_cadastro()
+        self.assertIsNone(self.janela.administrador_controller)
+        self.assertTrue(hasattr(self.janela, "nome_usuario"))
+
+        self.abrir_perfil(self.janela, "Estudante")
+        self.assertIsNotNone(self.janela.estudante_controller)
+        self.janela._voltar_cadastro()
+        self.assertIsNone(self.janela.estudante_controller)
+        self.assertTrue(hasattr(self.janela, "nome_usuario"))

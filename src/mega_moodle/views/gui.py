@@ -17,6 +17,7 @@ from mega_moodle.controllers.administrador_controller import AdministradorContro
 from mega_moodle.controllers.cadastro_controller import CadastroController
 from mega_moodle.controllers.estudante_controller import EstudanteController
 from mega_moodle.models.dia_semana import DiaSemana
+from mega_moodle.models.disciplina import Disciplina
 from mega_moodle.models.estudante import MAX_LIMITE_DISCIPLINAS
 from mega_moodle.models.tipo_disciplina import TipoDisciplina
 
@@ -57,7 +58,7 @@ class MegaMoodleWindow(QMainWindow):
             self.identificacao.value(), self.nome_usuario.text(), perfil
         )
         if not resultado.sucesso:
-            QMessageBox.warning(self, "Cadastro", resultado.mensagem)
+            self._exibir_mensagem("Cadastro", resultado.mensagem, sucesso=False)
             return
 
         self.administrador_controller = self.controller.administrador_controller
@@ -68,7 +69,7 @@ class MegaMoodleWindow(QMainWindow):
     def _admin(self) -> QWidget:
         tela, form = self._formulario()
         nome = self.administrador_controller.administrador.nome
-        form.addRow(QLabel(f"Administrador: {nome}"))
+        form.addRow(QLabel(f"Administrador: {nome}"), self._botao("Sair", self._voltar_cadastro))
 
         self.codigo = QLineEdit()
         self.nome_disciplina = QLineEdit()
@@ -99,7 +100,7 @@ class MegaMoodleWindow(QMainWindow):
             self.tipo.currentData(),
         )
         if not resultado.sucesso:
-            QMessageBox.warning(self, "Disciplina", resultado.mensagem)
+            self._exibir_mensagem("Disciplina", resultado.mensagem, sucesso=False)
             return
 
         self._atualizar_disciplinas()
@@ -117,7 +118,10 @@ class MegaMoodleWindow(QMainWindow):
 
     def _estudante(self) -> QWidget:
         tela, form = self._formulario()
-        form.addRow(QLabel(f"Estudante: {self.estudante_controller.estudante.nome}"))
+        form.addRow(
+            QLabel(f"Estudante: {self.estudante_controller.estudante.nome}"),
+            self._botao("Sair", self._voltar_cadastro),
+        )
 
         self.limite_atual = QLabel()
         limite = self.estudante_controller.estudante.limite_disciplinas
@@ -163,7 +167,7 @@ class MegaMoodleWindow(QMainWindow):
 
         self.lista_concluidas = QListWidget()
         form.addRow("Histórico", self.lista_concluidas)
-        self._atualizar_historico(self.estudante_controller.estudante.disciplinas_concluidas)
+        self._atualizar_lista_concluidas(self.estudante_controller.estudante.disciplinas_concluidas)
 
         return tela
 
@@ -174,28 +178,30 @@ class MegaMoodleWindow(QMainWindow):
 
         resultado = self.estudante_controller.registrar_disciplina_concluida(disciplina)
         if not resultado.sucesso:
-            QMessageBox.warning(self, "Disciplina concluída", resultado.mensagem)
+            self._exibir_mensagem("Disciplina concluída", resultado.mensagem, sucesso=False)
             return
 
         if resultado.disciplinas is not None:
-            self._atualizar_historico(resultado.disciplinas)
-        QMessageBox.information(self, "Disciplina concluída", resultado.mensagem)
+            self._atualizar_lista_concluidas(resultado.disciplinas)
+        self._exibir_mensagem("Disciplina concluída", resultado.mensagem, sucesso=True)
 
-    def _atualizar_historico(self, disciplinas: list) -> None:
+    def _atualizar_lista_concluidas(self, disciplinas: list[Disciplina]) -> None:
         self.lista_concluidas.clear()
         for disciplina in disciplinas:
             self.lista_concluidas.addItem(f"{disciplina.codigo} - {disciplina.nome}")
+
+    _atualizar_historico = _atualizar_lista_concluidas
 
     def _salvar_limite(self) -> None:
         resultado = self.estudante_controller.definir_limite_disciplinas(
             self.limite_disciplinas.value()
         )
         if not resultado.sucesso:
-            QMessageBox.warning(self, "Limite de disciplinas", resultado.mensagem)
+            self._exibir_mensagem("Limite de disciplinas", resultado.mensagem, sucesso=False)
             return
 
         self._atualizar_limite(resultado.limite)
-        QMessageBox.information(self, "Limite de disciplinas", resultado.mensagem)
+        self._exibir_mensagem("Limite de disciplinas", resultado.mensagem, sucesso=True)
 
     def _atualizar_limite(self, limite: int | None) -> None:
         self.limite_atual.setText(str(limite) if limite else "Não definido")
@@ -207,7 +213,7 @@ class MegaMoodleWindow(QMainWindow):
             self.fim.time().toPython(),
         )
         if not resultado.sucesso:
-            QMessageBox.warning(self, "Disponibilidade", resultado.mensagem)
+            self._exibir_mensagem("Disponibilidade", resultado.mensagem, sucesso=False)
             return
 
         self._atualizar_disponibilidades()
@@ -221,8 +227,19 @@ class MegaMoodleWindow(QMainWindow):
                 f"{disponibilidade.hora_fim:%H:%M}"
             )
 
+    def _exibir_mensagem(self, titulo: str, mensagem: str, sucesso: bool = True) -> None:
+        if sucesso:
+            QMessageBox.information(self, titulo, mensagem)
+        else:
+            QMessageBox.warning(self, titulo, mensagem)
+
     @staticmethod
     def _botao(texto: str, acao) -> QPushButton:
         botao = QPushButton(texto)
         botao.clicked.connect(acao)
         return botao
+
+    def _voltar_cadastro(self) -> None:
+        self.administrador_controller = None
+        self.estudante_controller = None
+        self.setCentralWidget(self._cadastro())

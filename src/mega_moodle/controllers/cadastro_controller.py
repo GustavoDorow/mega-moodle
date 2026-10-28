@@ -18,7 +18,7 @@ class CadastroController:
         disciplina_dao: DisciplinaDAO,
         estudante_dao: EstudanteDAO,
         disponibilidade_dao: DisponibilidadeDAO,
-        historico_dao: HistoricoDAO | None = None,
+        historico_dao: HistoricoDAO,
     ) -> None:
         self.disciplina_dao = disciplina_dao
         self.estudante_dao = estudante_dao
@@ -51,20 +51,19 @@ class CadastroController:
                     return ResultadoOperacao(
                         False, "Não foi possível carregar os dados do perfil."
                     )
-                estudante.disponibilidades = self.disponibilidade_dao.listar(identificacao)
-                if self.historico_dao is not None:
-                    estudante.disciplinas_concluidas = self.historico_dao.listar_concluidas(
-                        identificacao
-                    )
                 catalogo = self.disciplina_dao.listar()
-                self.estudante_controller = EstudanteController(
+                controller = EstudanteController(
                     estudante,
                     self.disponibilidade_dao,
                     self.estudante_dao,
                     self.historico_dao,
                     catalogo,
                 )
+                controller.carregar_estudante()
+                self.estudante_controller = controller
         except (sqlite3.Error, ValueError):
+            self.administrador_controller = None
+            self.estudante_controller = None
             return ResultadoOperacao(False, "Não foi possível carregar os dados do perfil.")
 
         return ResultadoOperacao(True, "Perfil carregado.")

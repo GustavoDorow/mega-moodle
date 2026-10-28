@@ -17,7 +17,7 @@ class EstudanteController:
         estudante: Estudante,
         disponibilidade_dao: DisponibilidadeDAO,
         estudante_dao: EstudanteDAO,
-        historico_dao: HistoricoDAO | None = None,
+        historico_dao: HistoricoDAO,
         catalogo_disciplinas: list[Disciplina] | None = None,
     ) -> None:
         self.estudante = estudante
@@ -26,6 +26,13 @@ class EstudanteController:
         self.historico_dao = historico_dao
         self.catalogo_disciplinas: list[Disciplina] = (
             catalogo_disciplinas if catalogo_disciplinas is not None else []
+        )
+
+    def carregar_estudante(self) -> None:
+        """Carrega disponibilidades e histórico do estudante a partir dos DAOs."""
+        self.estudante.disponibilidades = self.disponibilidade_dao.listar(self.estudante.id)
+        self.estudante.disciplinas_concluidas = self.historico_dao.listar_concluidas(
+            self.estudante.id
         )
 
     @property
@@ -67,9 +74,6 @@ class EstudanteController:
     def registrar_disciplina_concluida(
         self, disciplina: Disciplina
     ) -> ResultadoOperacao:
-        if self.historico_dao is None:
-            return ResultadoOperacao(False, "DAO de histórico não configurado.")
-
         status = self.historico_dao.registrar(self.estudante.id, disciplina.codigo)
         if status is StatusPersistencia.DUPLICADO:
             return ResultadoOperacao(False, "Disciplina já registrada como concluída.")

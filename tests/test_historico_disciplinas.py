@@ -216,6 +216,20 @@ class HistoricoControllerTest(unittest.TestCase):
             self.assertFalse(res.sucesso)
             self.assertIsNone(reaberto.estudante_controller)
 
+    def test_carregar_estudante_popula_disponibilidades_e_historico(self):
+        self.estudante_ctrl.registrar_disciplina_concluida(self.d1)
+        estudante_novo = Estudante(2, "David")
+        ctrl = type(self.estudante_ctrl)(
+            estudante_novo,
+            self.estudante_ctrl.disponibilidade_dao,
+            self.estudante_ctrl.estudante_dao,
+            self.estudante_ctrl.historico_dao,
+        )
+        self.assertEqual(ctrl.estudante.disciplinas_concluidas, [])
+        ctrl.carregar_estudante()
+        self.assertEqual(len(ctrl.estudante.disciplinas_concluidas), 1)
+        self.assertEqual(ctrl.estudante.disciplinas_concluidas[0].codigo, "INE5608")
+
 
 class HistoricoGUITest(unittest.TestCase):
     @classmethod
@@ -317,3 +331,23 @@ class HistoricoGUITest(unittest.TestCase):
 
         self.assertEqual(janela_estudante.lista_concluidas.count(), 0)
         self.assertEqual(janela_estudante.estudante_controller.estudante.disciplinas_concluidas, [])
+
+    def test_exibir_mensagem_chama_qmessagebox(self):
+        with patch("mega_moodle.views.gui.QMessageBox.information") as info, patch(
+            "mega_moodle.views.gui.QMessageBox.warning"
+        ) as aviso:
+            self.janela._exibir_mensagem("Título", "Sucesso!", sucesso=True)
+            info.assert_called_once_with(self.janela, "Título", "Sucesso!")
+            self.janela._exibir_mensagem("Título", "Erro!", sucesso=False)
+            aviso.assert_called_once_with(self.janela, "Título", "Erro!")
+
+    def test_atualizar_lista_concluidas_aceita_tipo_disciplina(self):
+        self.abrir_perfil(self.janela, "Estudante", id_usuario=2, nome="David")
+        disciplinas = [
+            Disciplina("INE5608", "APS", 72, 4, TipoDisciplina.OBRIGATORIA),
+            Disciplina("INE5609", "Estruturas", 72, 3, TipoDisciplina.OBRIGATORIA),
+        ]
+        self.janela._atualizar_lista_concluidas(disciplinas)
+        self.assertEqual(self.janela.lista_concluidas.count(), 2)
+        self.assertIn("INE5608", self.janela.lista_concluidas.item(0).text())
+        self.assertIn("INE5609", self.janela.lista_concluidas.item(1).text())
